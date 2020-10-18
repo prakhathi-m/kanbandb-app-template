@@ -1,3 +1,10 @@
+#root {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
 .App {
   text-align: center;
   max-width: 1200px;
@@ -5,22 +12,22 @@
   background: #edf2f7;
 }
 
-main {
+main section.row {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  height: 100vh;
 }
 
-main section {
+main .row section {
   flex: 0 0 33.3%;
   max-width: 33.3%;
 }
 
-main section .container {
+main .row section .container {
   border-right: 3px solid #d4dfea;
-  height: 100%;
+  height: 300px;
   padding: 20px;
+  overflow-y: scroll;
 }
 
 main section h2 {
@@ -33,4 +40,44 @@ main section h2 {
   padding: 20px;
   text-align: left;
   margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.card .delete-btn {
+  background: #ef5c5c;
+  border: 1px solid red;
+  color: #fff;
+  outline: 0;
+  cursor: pointer;
+}
+
+main form.input-form {
+  padding: 25px 20px 5px;
+  display: flex;
+  /* justify-content: space-around; */
+  flex-wrap: wrap;
+  background: #e8e8e8;
+}
+main form.input-form * {
+  margin: 0 0 20px 20px;
+}
+
+main form.input-form input,
+select {
+  width: 250px;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+main form .button {
+  padding: 10px;
+  color: #fff;
+  background: #00b882;
+  outline: 0;
+  border-radius: 3px;
+  border: 1px solid #00b882;
+  min-width: 150px;
+  cursor: pointer;
 }

@@ -18,50 +18,54 @@ const LIST = [
 ];
 
 class App extends React.Component {
-  // Initialize DB communications.
   constructor(props) {
     super(props);
     this.state = {
       todo: [],
       doing: [],
       done: [],
-      kanbandb: KanbanDB.connect(),
+      kanbandb: KanbanDB.connect(), // Initialize DB communications.
+      name: "",
+      desc: "",
+      status: STATUS.TODO,
     };
     this.getCardDetails = this.getCardDetails.bind(this);
     this.updateCardDetails = this.updateCardDetails.bind(this);
   }
 
   initialize() {
-    // Add some cards
+    // Add default cards initially
     LIST.forEach(({ name, description, status }) => {
       this.state.kanbandb.then((db) => {
-        db.addCard({ name, description, status })
-          .then((cardId) => console.log("card added with ID " + cardId))
-          .catch((err) => console.error(err.message));
+        this.addCard(name, description, status);
       });
     });
   }
 
   componentDidMount() {
     this.initialize();
-    this.state.kanbandb.then((db) => this.getCardDetails(db));
+  }
+
+  handleError(err) {
+    if (err.message === "No data found.") {
+      this.setState({ todo: [], doing: [], done: [] });
+    }
+    console.error("error", err.message);
   }
 
   getCardDetails(db) {
-    console.log(db);
-
+    // Get the cards from db and set it to the corresponding state value.
     db.getCards()
       .then((cards) => {
         console.log("all cards from DB", cards);
         const todo = [],
           doing = [],
           done = [];
-        cards.map((card) => {
-          // const newArray = this.state.[card.status.toLowerCase()].concat(card);
-          // this.setState({ [card.status.toLowerCase()]: newArray });
-          if (card.status.toLowerCase() === "todo") {
+        cards.forEach((card) => {
+          const { status } = card;
+          if (status.toLowerCase() === "todo") {
             todo.push(card);
-          } else if (card.status.toLowerCase() === "doing") {
+          } else if (status.toLowerCase() === "doing") {
             doing.push(card);
           } else {
             done.push(card);
@@ -69,22 +73,23 @@ class App extends React.Component {
         });
         this.setState({ todo, doing, done });
       })
-      .catch((err) => {
-        console.error("error", err.message);
-      });
+      .catch((err) => this.handleError(err));
   }
 
-  renderCard(card) {
+  renderCardDetails({ id, status, name, description }) {
     return (
       <div
-        key={card}
+        key={id}
         className="card"
-        draggable="true"
+        draggable
         onDragStart={this.drag}
-        id={card.id}
-        data-status={card.status}
+        id={id}
+        data-status={status}
       >
-        {card.name}: {card.description}
+        {name}: {description}
+        <button className="delete-btn" onClick={() => this.deleteCard(id)}>
+          X
+        </button>
       </div>
     );
   }
@@ -100,7 +105,6 @@ class App extends React.Component {
   drop = (ev) => {
     ev.preventDefault();
     const data = ev.dataTransfer.getData("text");
-    ev.target.appendChild(document.getElementById(data));
     const status = ev.target.id;
 
     this.state.kanbandb.then((db) => {
@@ -110,87 +114,120 @@ class App extends React.Component {
 
   updateCardDetails = (db, id, status) => {
     db.updateCardById(id, { status })
-
       .then((success) => {
         if (success) {
-          // this.getCardDetails(db);
-          const d = document
-            .getElementById(id)
-            .getAttribute("data-status")
-            .toLowerCase();
-          const oldstatusarr = this.state[d].filter((item) => item.id != id);
-          const newarr = this.state[d].filter((item) => item.id === id);
-          newarr[0].status = status;
-          console.log(oldstatusarr, newarr);
-          this.setState({
-            [d]: oldstatusarr,
-            [status.toLowerCase()]: newarr[0],
-          });
+          this.getCardDetails(db);
         }
       })
-      .catch((err) => {
-        console.error("error", err.message);
-      });
-    this.addCard();
+      .catch((err) => this.handleError(err));
   };
 
-  addCard = () => {
+  addCard = (name, desc, status) => {
     this.state.kanbandb.then((db) => {
       db.addCard({
-        name: "Bug",
-        description: "Production bugs need immediate action",
-        status: "TODO",
+        name,
+        description: desc,
+        status,
       })
         .then((cardId) => {
           console.log("card added with ID " + cardId);
-          // this.getCardDetails(db);
+          this.getCardDetails(db);
         })
-        .catch((err) => console.error(err.message));
+        .catch((err) => this.handleError(err));
+    });
+  };
+
+  deleteCard = (id) => {
+    this.state.kanbandb.then((db) => {
+      db.deleteCardById(id).then((cardId) => {
+        console.log("card added with ID " + cardId);
+        this.getCardDetails(db);
+      });
     });
   };
 
   renderCards(list) {
-    return list.length > 0 && list.map((card) => this.renderCard(card));
+    return list.length > 0 && list.map((card) => this.renderCardDetails(card));
+  }
+
+  handleSubmit = (e) => {
+    e.preventDefault();
+    const { status, name, desc } = this.state;
+    if (status && name && desc) {
+      console.log("submitted", status, name, desc);
+      this.addCard(name, desc, status);
+    }
+  };
+
+  handleChange(key, value) {
+    this.setState({ [key]: value });
   }
 
   render() {
-    const { todo, doing, done } = this.state;
+    const { todo, doing, done, status, name, desc } = this.state;
     return (
       <div className="App">
         <main>
-          <section>
-            <h2>To-do</h2>
-            <div
-              id={STATUS.TODO}
-              className="container"
-              onDrop={this.drop}
-              onDragOver={this.allowDrop}
-            >
-              {this.renderCards(todo)}
-            </div>
+          <section className="row">
+            <section>
+              <h2>To-do</h2>
+              <div
+                id={STATUS.TODO}
+                className="container"
+                onDrop={this.drop}
+                onDragOver={this.allowDrop}
+              >
+                {this.renderCards(todo)}
+              </div>
+            </section>
+            <section>
+              <h2>In Progress</h2>
+              <div
+                id={STATUS.DOING}
+                className="container"
+                onDrop={this.drop}
+                onDragOver={this.allowDrop}
+              >
+                {this.renderCards(doing)}
+              </div>
+            </section>
+            <section>
+              <h2>Done</h2>
+              <div
+                id={STATUS.DONE}
+                className="container"
+                onDrop={this.drop}
+                onDragOver={this.allowDrop}
+              >
+                {this.renderCards(done)}
+              </div>
+            </section>
           </section>
-          <section>
-            <h2>In Progress</h2>
-            <div
-              id={STATUS.DOING}
-              className="container"
-              onDrop={this.drop}
-              onDragOver={this.allowDrop}
+          <form className="input-form" onSubmit={this.handleSubmit}>
+            <input
+              type="text"
+              placeholder="Task name"
+              value={name}
+              onChange={(e) => this.handleChange("name", e.target.value)}
+              required
+            ></input>
+            <input
+              type="text"
+              placeholder="Task Description"
+              value={desc}
+              onChange={(e) => this.handleChange("desc", e.target.value)}
+              required
+            ></input>
+            <select
+              value={status}
+              onChange={(e) => this.handleChange("status", e.target.value)}
             >
-              {this.renderCards(doing)}
-            </div>
-          </section>
-          <section>
-            <h2>Done</h2>
-            <div
-              id={STATUS.DONE}
-              className="container"
-              onDrop={this.drop}
-              onDragOver={this.allowDrop}
-            >
-              {this.renderCards(done)}
-            </div>
-          </section>
+              <option value={STATUS.TODO}>To-do</option>
+              <option value={STATUS.DOING}>In-progress</option>
+              <option value={STATUS.DONE}>Done</option>
+            </select>
+            <input type="submit" className="button" value="Add New" />
+          </form>
         </main>
       </div>
     );
