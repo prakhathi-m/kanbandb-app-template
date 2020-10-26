@@ -156,6 +156,7 @@ class App extends React.Component {
     if (status && name && desc) {
       console.log("submitted", status, name, desc);
       this.addCard(name, desc, status);
+      this.setState({ name: "", desc: "", status: STATUS.TODO });
     }
   };
 
@@ -167,6 +168,7 @@ class App extends React.Component {
     const { todo, doing, done, status, name, desc } = this.state;
     return (
       <div className="App">
+        <h1>Trello</h1>
         <main>
           <section className="row">
             <section>
